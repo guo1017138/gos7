@@ -390,8 +390,32 @@ func (mb *client) Read(variable string, buffer []byte) (value interface{}, err e
 	case "AW": //Output word
 	case "AD": //Output double-word
 	case "MB": //Memory byte
+		start, err := strconv.ParseInt(variable[2:], 10, 16)
+		if err != nil {
+			err = fmt.Errorf("memory Area read variable should not be empty")
+			return value, err
+		}
+		err = mb.AGReadMB(int(start), 1, buffer)
+		value = buffer[0]
+		return value, err
 	case "MW": //Memory word
+		start, err := strconv.ParseInt(variable[2:], 10, 16)
+		if err != nil {
+			err = fmt.Errorf("memory Area read variable should not be empty")
+			return value, err
+		}
+		err = mb.AGReadMB(int(start), 2, buffer)
+		value = binary.BigEndian.Uint16(buffer[0:])
+		return value, err
 	case "MD": //Memory double-word
+		start, err := strconv.ParseInt(variable[2:], 10, 16)
+		if err != nil {
+			err = fmt.Errorf("memory Area read variable should not be empty")
+			return value, err
+		}
+		err = mb.AGReadMB(int(start), 4, buffer)
+		value = binary.BigEndian.Uint32(buffer[0:])
+		return value, err
 	case "DB": //Data Block
 		dbArray := strings.Split(variable, ".")
 		if len(dbArray) < 2 {
@@ -432,56 +456,38 @@ func (mb *client) Read(variable string, buffer []byte) (value interface{}, err e
 	default:
 		switch otherArea := variable[0:1]; otherArea {
 		case "E", "I": //input
-			addressArray := strings.Split(variable, ".")
-			if len(addressArray) < 2 {
-				err = fmt.Errorf("input Area read variable should not be empty")
-				return
-			}
-			start, err := strconv.ParseInt(addressArray[0][1:], 10, 16)
+			start, mBit, err := getStartAndMbit(variable)
 			if err != nil {
 				return value, err
 			}
-			mBit, err := strconv.ParseInt(addressArray[1], 10, 16)
+			err = mb.AGReadEB(start, 1, buffer)
 			if err != nil {
 				return value, err
 			}
-			if mBit > 7 || mBit < 0 {
-				err = fmt.Errorf("input read bit is invalid")
-				return value, err
-			}
-			err = mb.AGReadEB(int(start), 1, buffer)
-			if err != nil {
-				return value, err
-			}
-			helper := Helper{}
-			value = helper.GetBoolAt(buffer[0], uint(mBit))
+			mask := []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
+			value = buffer[0] & mask[mBit]
 			return value, err
 		case "A", "0", "Q": //output:
-			addressArray := strings.Split(variable, ".")
-			if len(addressArray) < 2 {
-				err = fmt.Errorf("output Area read variable should not be empty")
-				return
-			}
-			start, err := strconv.ParseInt(addressArray[0][1:], 10, 16)
+			start, mBit, err := getStartAndMbit(variable)
 			if err != nil {
 				return value, err
 			}
-			mBit, err := strconv.ParseInt(addressArray[1], 10, 16)
+			err = mb.AGReadAB(start, 1, buffer)
 			if err != nil {
 				return value, err
 			}
-			if mBit > 7 || mBit < 0 {
-				err = fmt.Errorf("output read bit is invalid")
-				return value, err
-			}
-			err = mb.AGReadAB(int(start), 1, buffer)
-			if err != nil {
-				return value, err
-			}
-			helper := Helper{}
-			value = helper.GetBoolAt(buffer[0], uint(mBit))
+			mask := []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
+			value = buffer[0] & mask[mBit]
 			return value, err
 		case "M": //memory
+			start, mBit, err := getStartAndMbit(variable)
+			if err != nil {
+				return value, err
+			}
+			err = mb.AGReadMB(start, 1, buffer)
+			mask := []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
+			value = buffer[0] & mask[mBit]
+			return value, err
 		case "T": //timer
 			startByte, _ := strconv.ParseInt(string(variable[1:]), 10, 16)
 			err = mb.AGReadTM(int(startByte), 1, buffer)
@@ -582,4 +588,27 @@ func dataSizeByte(wordLength int) int {
 		return 0
 	}
 
+}
+
+// get start and mBit such like Xaaa.b address
+func getStartAndMbit(variable string) (start int, mBit uint, err error) {
+	var start1, mBit1 int64
+	addressArray := strings.Split(variable, ".")
+	if len(addressArray) < 2 {
+		err = fmt.Errorf("area read variable should not be empty")
+		return
+	}
+	start1, err = strconv.ParseInt(addressArray[0][1:], 10, 16)
+	if err != nil {
+		return
+	}
+	mBit1, err = strconv.ParseInt(addressArray[1], 10, 16)
+	if err != nil {
+		return
+	}
+	if mBit1 > 7 || mBit1 < 0 {
+		err = fmt.Errorf("output read bit is invalid")
+		return
+	}
+	return int(start1), uint(mBit1), nil
 }
