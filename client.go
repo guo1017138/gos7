@@ -422,6 +422,10 @@ func (mb *client) Read(variable string, buffer []byte) (value interface{}, err e
 			err = fmt.Errorf("Db Area read variable should not be empty")
 			return
 		}
+		if len(dbArray[1]) < 4 {
+			err = fmt.Errorf("db read address is invalid")
+			return
+		}
 		dbNo, _ := strconv.ParseInt(string(string(dbArray[0])[2:]), 10, 16)
 		dbIndex, _ := strconv.ParseInt(string(string(dbArray[1])[3:]), 10, 16)
 		dbType := string(dbArray[1])[0:3]
@@ -518,6 +522,12 @@ func (mb *client) Read(variable string, buffer []byte) (value interface{}, err e
 
 // send the package of a pdu request and a pdu response, check for response error and verify the package
 func (mb *client) send(request *ProtocolDataUnit) (response *ProtocolDataUnit, err error) {
+	if !mb.transporter.IsOpen() {
+		err = mb.transporter.Connect()
+		if err != nil {
+			return
+		}
+	}
 	dataResponse, err := mb.transporter.Send(request.Data)
 	if err != nil {
 		return

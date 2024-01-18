@@ -49,7 +49,7 @@ func NewTCPClientHandler(address string, rack int, slot int) *TCPClientHandler {
 	return h
 }
 
-//TCPClient creator for a TCP client with address, rack and slot, implement from interface client
+// TCPClient creator for a TCP client with address, rack and slot, implement from interface client
 func TCPClient(address string, rack int, slot int) Client {
 	handler := NewTCPClientHandler(address, rack, slot)
 	return NewClient(handler)
@@ -307,7 +307,11 @@ func (mb *tcpTransporter) closeIdle() {
 	}
 }
 
-//reserve for future use, need to verify the request and response
+// reserve for future use, need to verify the request and response
 func (mb *tcpPackager) Verify(request []byte, response []byte) (err error) {
 	return
+}
+
+func (mb *tcpTransporter) IsOpen() bool {
+	return mb.conn != nil
 }
