@@ -12,11 +12,11 @@ const (
 	bias int64 = 621355968000000000 // "decimicros" between 0001-01-01 00:00:00 and 1970-01-01 00:00:00
 )
 
-//Helper the helper to get/set value from/to byte array with difference types
+// Helper the helper to get/set value from/to byte array with difference types
 type Helper struct{}
 
-//SetValueAt set a value at a position of a byte array,
-//which based on builtin function: https://golang.org/pkg/encoding/binary/#Read
+// SetValueAt set a value at a position of a byte array,
+// which based on builtin function: https://golang.org/pkg/encoding/binary/#Read
 func (s7 *Helper) SetValueAt(buffer []byte, pos int, data interface{}) {
 	buf := new(bytes.Buffer)
 	err := binary.Write(buf, binary.BigEndian, data)
@@ -26,7 +26,7 @@ func (s7 *Helper) SetValueAt(buffer []byte, pos int, data interface{}) {
 	copy(buffer[pos:], buf.Bytes())
 }
 
-//GetValueAt set a value at a position of a byte array,
+// GetValueAt set a value at a position of a byte array,
 // which based on  builtin function: https://golang.org/pkg/encoding/binary/#Write
 func (s7 *Helper) GetValueAt(buffer []byte, pos int, value interface{}) {
 	buf := bytes.NewReader(buffer[pos:])
@@ -35,7 +35,7 @@ func (s7 *Helper) GetValueAt(buffer []byte, pos int, value interface{}) {
 	}
 }
 
-//GetRealAt 32 bit floating point number (S7 Real) (Range of float32)
+// GetRealAt 32 bit floating point number (S7 Real) (Range of float32)
 func (s7 *Helper) GetRealAt(buffer []byte, pos int) float32 {
 	var value uint32
 	s7.GetValueAt(buffer, pos, &value)
@@ -43,12 +43,12 @@ func (s7 *Helper) GetRealAt(buffer []byte, pos int) float32 {
 	return float
 }
 
-//SetRealAt 32 bit floating point number (S7 Real) (Range of float32)
+// SetRealAt 32 bit floating point number (S7 Real) (Range of float32)
 func (s7 *Helper) SetRealAt(buffer []byte, pos int, value float32) {
 	s7.SetValueAt(buffer, pos, math.Float32bits(value))
 }
 
-//GetLRealAt 64 bit floating point number (S7 LReal) (Range of float64)
+// GetLRealAt 64 bit floating point number (S7 LReal) (Range of float64)
 func (s7 *Helper) GetLRealAt(buffer []byte, pos int) float64 {
 	var value uint64
 	s7.GetValueAt(buffer, pos, &value)
@@ -56,12 +56,12 @@ func (s7 *Helper) GetLRealAt(buffer []byte, pos int) float64 {
 	return float
 }
 
-//SetLRealAt 64 bit floating point number (S7 LReal) (Range of float64)
+// SetLRealAt 64 bit floating point number (S7 LReal) (Range of float64)
 func (s7 *Helper) SetLRealAt(Buffer []byte, Pos int, Value float64) {
 	s7.SetValueAt(Buffer, Pos, math.Float64bits(Value))
 }
 
-//GetDateTimeAt DateTime (S7 DATE_AND_TIME)
+// GetDateTimeAt DateTime (S7 DATE_AND_TIME)
 func (s7 *Helper) GetDateTimeAt(Buffer []byte, Pos int) time.Time {
 	var Year, Month, Day, Hour, Min, Sec, MSec int
 	Year = decodeBcd(Buffer[Pos])
@@ -79,7 +79,7 @@ func (s7 *Helper) GetDateTimeAt(Buffer []byte, Pos int) time.Time {
 	return time.Date(Year, time.Month(Month), Day, Hour, Min, Sec, MSec*1000000, time.UTC)
 }
 
-//Binary-coded decimal https://en.wikipedia.org/wiki/Binary-coded_decimal
+// Binary-coded decimal https://en.wikipedia.org/wiki/Binary-coded_decimal
 func decodeBcd(b byte) int {
 	return int(((b >> 4) * 10) + (b & 0x0F))
 }
@@ -88,7 +88,7 @@ func encodeBcd(value int) byte {
 	return byte(((value / 10) << 4) | (value % 10))
 }
 
-//SetDateTimeAt DateTime (S7 DATE_AND_TIME)
+// SetDateTimeAt DateTime (S7 DATE_AND_TIME)
 func (s7 *Helper) SetDateTimeAt(buffer []byte, pos int, value time.Time) {
 	y := value.Year()
 	m := int(value.Month())
@@ -111,7 +111,7 @@ func (s7 *Helper) SetDateTimeAt(buffer []byte, pos int, value time.Time) {
 	buffer[pos+7] = (encodeBcd(value.Nanosecond()/1000000%10) << 4) | encodeBcd(int(value.Weekday()))
 }
 
-//GetDateAt DATE (S7 DATE)
+// GetDateAt DATE (S7 DATE)
 func (s7 *Helper) GetDateAt(buffer []byte, pos int) time.Time {
 	initDate := time.Date(1990, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
 	var days int16
@@ -119,7 +119,7 @@ func (s7 *Helper) GetDateAt(buffer []byte, pos int) time.Time {
 	return initDate.AddDate(0, 0, int(days))
 }
 
-//SetDateAt DATE (S7 DATE)
+// SetDateAt DATE (S7 DATE)
 func (s7 *Helper) SetDateAt(buffer []byte, pos int, value time.Time) {
 	initDate := time.Date(1990, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
 	hours := value.Sub(initDate).Hours()
@@ -127,20 +127,20 @@ func (s7 *Helper) SetDateAt(buffer []byte, pos int, value time.Time) {
 	s7.SetValueAt(buffer, pos, days)
 }
 
-//GetTODAt TOD (S7 TIME_OF_DAY)
+// GetTODAt TOD (S7 TIME_OF_DAY)
 func (s7 *Helper) GetTODAt(buffer []byte, pos int) time.Time {
 	var ms int32
 	s7.GetValueAt(buffer, 0, &ms)
 	return time.Date(1970, time.Month(1), 1, 0, 0, 0, int(ms)*1000000, time.UTC)
 }
 
-//SetTODAt TOD (S7 TIME_OF_DAY)
+// SetTODAt TOD (S7 TIME_OF_DAY)
 func (s7 *Helper) SetTODAt(buffer []byte, pos int, value time.Time) {
 	v := int32((value.Hour()*3600 + value.Minute()*60 + value.Second()) * 1000)
 	s7.SetValueAt(buffer, pos, v)
 }
 
-//GetLTODAt LTOD (S7 1500 LONG TIME_OF_DAY)
+// GetLTODAt LTOD (S7 1500 LONG TIME_OF_DAY)
 func (s7 *Helper) GetLTODAt(Buffer []byte, Pos int) time.Time {
 	//S71500 Tick = 1 ns
 	var nano int64
@@ -148,25 +148,25 @@ func (s7 *Helper) GetLTODAt(Buffer []byte, Pos int) time.Time {
 	return time.Date(1970, time.Month(1), 1, 0, 0, 0, int(nano), time.UTC)
 }
 
-//SetLTODAt LTOD (S7 1500 LONG TIME_OF_DAY)
+// SetLTODAt LTOD (S7 1500 LONG TIME_OF_DAY)
 func (s7 *Helper) SetLTODAt(buffer []byte, pos int, value time.Time) {
 	v := int64((value.Hour()*3600 + value.Minute()*60 + value.Second()) * 1000000000)
 	s7.SetValueAt(buffer, pos, v)
 }
 
-//GetLDTAt LDT (S7 1500 Long Date and Time)
+// GetLDTAt LDT (S7 1500 Long Date and Time)
 func (s7 *Helper) GetLDTAt(buffer []byte, pos int) time.Time {
 	var nano int64
 	s7.GetValueAt(buffer, pos, &nano)
 	return time.Date(1970, time.Month(1), 1, 0, 0, 0, int(nano), time.UTC)
 }
 
-//SetLDTAt LDT (S7 1500 Long Date and Time)
+// SetLDTAt LDT (S7 1500 Long Date and Time)
 func (s7 *Helper) SetLDTAt(buffer []byte, pos int, value time.Time) {
 	s7.SetValueAt(buffer, pos, value.UnixNano())
 }
 
-//GetDTLAt DTL (S71200/1500 Date and Time)
+// GetDTLAt DTL (S71200/1500 Date and Time)
 func (s7 *Helper) GetDTLAt(buffer []byte, pos int) time.Time {
 	var year uint16
 	var nanos int32
@@ -175,7 +175,7 @@ func (s7 *Helper) GetDTLAt(buffer []byte, pos int) time.Time {
 	return time.Date(int(year), time.Month(int(buffer[pos+2])), int(buffer[pos+3]), int(buffer[pos+5]), int(buffer[pos+6]), int(buffer[pos+7]), int(nanos), time.UTC)
 }
 
-//SetDTLAt DTL (S71200/1500 Date and Time)
+// SetDTLAt DTL (S71200/1500 Date and Time)
 func (s7 *Helper) SetDTLAt(buffer []byte, pos int, value time.Time) []byte {
 	year := uint16(value.Year())
 	s7.SetValueAt(buffer, pos, year)
@@ -207,7 +207,7 @@ func (s7 *Helper) GetS5TimeAt(buffer []byte, pos int) time.Duration {
 	return d
 }
 
-//SetS5TimeAt Set S5Time
+// SetS5TimeAt Set S5Time
 func (s7 *Helper) SetS5TimeAt(buffer []byte, pos int, value time.Duration) []byte {
 	ms := value.Milliseconds()
 	switch {
@@ -227,7 +227,7 @@ func (s7 *Helper) SetS5TimeAt(buffer []byte, pos int, value time.Duration) []byt
 	return buffer
 }
 
-//SetStringAt Set String (S7 String)
+// SetStringAt Set String (S7 String)
 func (s7 *Helper) SetStringAt(buffer []byte, pos int, maxLen int, value string) []byte {
 	buffer[pos] = byte(maxLen)
 	var byteLen int
@@ -241,20 +241,20 @@ func (s7 *Helper) SetStringAt(buffer []byte, pos int, maxLen int, value string) 
 	return buffer
 }
 
-//GetStringAt Get String
+// GetStringAt Get String
 func (s7 *Helper) GetStringAt(buffer []byte, pos int) string {
 	l := uint8(buffer[pos+1])
 	return string(buffer[pos+2 : pos+2+int(l)])
 }
 
-//SetWStringAt Set String (WString)
+// SetWStringAt Set String (WString)
 func (s7 *Helper) SetWStringAt(buffer []byte, pos int, maxLen int, value string) []byte {
 	chars := []rune(value)
 	var sLen int
-	if maxLen < len(value) {
+	if maxLen < len(chars) {
 		sLen = maxLen
 	} else {
-		sLen = len(value)
+		sLen = len(chars)
 	}
 	s7.SetValueAt(buffer, pos+0, int16(maxLen))
 	s7.SetValueAt(buffer, pos+2, int16(sLen))
@@ -267,7 +267,7 @@ func (s7 *Helper) SetWStringAt(buffer []byte, pos int, maxLen int, value string)
 	return buffer
 }
 
-//GetWStringAt Get WString
+// GetWStringAt Get WString
 func (s7 *Helper) GetWStringAt(buffer []byte, pos int) string {
 	var l, max int16
 	var i int
@@ -285,33 +285,33 @@ func (s7 *Helper) GetWStringAt(buffer []byte, pos int) string {
 	return s
 }
 
-//GetCharsAt Get Array of char (S7 ARRAY OF CHARS)
+// GetCharsAt Get Array of char (S7 ARRAY OF CHARS)
 func (s7 *Helper) GetCharsAt(buffer []byte, pos int, Size int) string {
 	return string(buffer[pos : pos+Size])
 }
 
-//SetCharsAt Get Array of char (S7 ARRAY OF CHARS)
+// SetCharsAt Get Array of char (S7 ARRAY OF CHARS)
 func (s7 *Helper) SetCharsAt(buffer []byte, pos int, value string) {
 	buffer = append(buffer[:pos], append([]byte(value), buffer[pos:]...)...)
 
 }
 
-//GetCounter Get S7 Counter
+// GetCounter Get S7 Counter
 func (s7 *Helper) GetCounter(value uint16) int {
 	return int(decodeBcd(byte(value))*100 + decodeBcd(byte(value>>8)))
 }
 
-//GetCounterAt Get S7 Counter at a index
+// GetCounterAt Get S7 Counter at a index
 func (s7 *Helper) GetCounterAt(buffer []uint16, index int) int {
 	return s7.GetCounter(buffer[index])
 }
 
-//ToCounter convert value to s7
+// ToCounter convert value to s7
 func (s7 *Helper) ToCounter(value int) uint16 {
 	return uint16(encodeBcd(value/100) + encodeBcd(value%100<<8))
 }
 
-//SetCounterAt set a counter at a postion
+// SetCounterAt set a counter at a postion
 func (s7 *Helper) SetCounterAt(buffer []uint16, pos int, value int) []uint16 {
 	buffer[pos] = s7.ToCounter(value)
 	return buffer
