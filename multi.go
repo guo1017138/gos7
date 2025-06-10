@@ -8,7 +8,7 @@ import (
 	"fmt"
 )
 
-//S7DataItem which expose as S7DataItem to use in Multiple read/write
+// S7DataItem which expose as S7DataItem to use in Multiple read/write
 type S7DataItem struct {
 	Area     int
 	WordLen  int
@@ -20,7 +20,7 @@ type S7DataItem struct {
 	Error    string
 }
 
-//implement WriteMulti
+// implement WriteMulti
 func (mb *client) AGWriteMulti(dataItems []S7DataItem, itemsCount int) (err error) {
 	// Checks items
 	if itemsCount > 20 { //max variable is 20
@@ -137,7 +137,7 @@ func (mb *client) AGWriteMulti(dataItems []S7DataItem, itemsCount int) (err erro
 	return
 }
 
-//implement ReadMulti
+// implement ReadMulti
 func (mb *client) AGReadMulti(dataItems []S7DataItem, itemsCount int) (err error) {
 	// Checks items
 	if itemsCount > 20 { //max variable is 20
@@ -196,14 +196,20 @@ func (mb *client) AGReadMulti(dataItems []S7DataItem, itemsCount int) (err error
 	}
 	// Check ISO Length
 	resLength := len(response.Data)
-	if resLength < 22 {
+	if resLength < 19 {
 		err = fmt.Errorf(ErrorText(errIsoInvalidPDU)) // PDU too Small
 		return
 	}
 	// Check Global Operation Result
-	cpuErr := CPUError(uint(binary.BigEndian.Uint16(response.Data[17:])))
+	cpuErrorCode := uint(binary.BigEndian.Uint16(response.Data[17:]))
+	cpuErr := CPUError(cpuErrorCode)
 	if cpuErr != 0 {
-		err = fmt.Errorf(ErrorText(cpuErr))
+		err = fmt.Errorf("CPU response error code: 0x%x, text: %s", cpuErrorCode, ErrorText(cpuErr))
+		return
+	}
+	// Check if has data
+	if resLength < 22 {
+		err = fmt.Errorf(ErrorText(errIsoInvalidPDU)) // PDU too Small
 		return
 	}
 	// Get true ItemsCount
