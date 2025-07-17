@@ -19,9 +19,9 @@ const (
 	// Default TCP timeout is not set
 	tcpTimeout     = 10 * time.Second
 	tcpIdleTimeout = 60 * time.Second
-	tcpMaxLength   = 2084
+	tcpMaxLength   = 65535
 	//messages
-	pduSizeRequested = 480
+	pduSizeRequested = 65535 - 7
 	isoTCP           = 102 //default isotcp port
 	isoHSize         = 7   // TPKT+COTP Header Size
 	minPduSize       = 16

@@ -23,7 +23,7 @@ type S7DataItem struct {
 // implement WriteMulti
 func (mb *client) AGWriteMulti(dataItems []S7DataItem, itemsCount int) (err error) {
 	// Checks items
-	if itemsCount > 20 { //max variable is 20
+	if itemsCount > 255 { //max variable is 255
 		err = fmt.Errorf(ErrorText(errCliTooManyItems))
 		return
 	}
@@ -121,7 +121,7 @@ func (mb *client) AGWriteMulti(dataItems []S7DataItem, itemsCount int) (err erro
 			err = fmt.Errorf(ErrorText(cpuErr))
 			return
 		}
-		if itemsWritten := int(response.Data[20]); itemsWritten != itemsCount || itemsWritten > 20 { //max var = 20
+		if itemsWritten := int(response.Data[20]); itemsWritten != itemsCount || itemsWritten > 255 { //max var = 255
 			err = fmt.Errorf(ErrorText(errCliInvalidPlcAnswer))
 			return
 		}
@@ -140,7 +140,7 @@ func (mb *client) AGWriteMulti(dataItems []S7DataItem, itemsCount int) (err erro
 // implement ReadMulti
 func (mb *client) AGReadMulti(dataItems []S7DataItem, itemsCount int) (err error) {
 	// Checks items
-	if itemsCount > 20 { //max variable is 20
+	if itemsCount > 255 { //max variable is 255
 		err = fmt.Errorf(ErrorText(errCliTooManyItems))
 		return
 	}
@@ -215,7 +215,7 @@ func (mb *client) AGReadMulti(dataItems []S7DataItem, itemsCount int) (err error
 	// Get true ItemsCount
 	itemsRead := int(response.Data[20])
 	s7ItemRead := make([]byte, 1024)
-	if itemsRead != itemsCount || itemsRead > 20 { //max var
+	if itemsRead != itemsCount || itemsRead > 255 { //max var
 		err = fmt.Errorf(ErrorText(errCliInvalidPlcAnswer))
 		return
 	}
