@@ -6,6 +6,7 @@ package gos7
 import (
 	"encoding/binary"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -417,34 +418,36 @@ func (mb *client) Read(variable string, buffer []byte) (value interface{}, err e
 		value = binary.BigEndian.Uint32(buffer[0:])
 		return value, err
 	case "DB": //Data Block
-		dbArray := strings.Split(variable, ".")
-		if len(dbArray) < 2 {
+		addrs, err1 := parseS7Address(strings.ToUpper(variable))
+		if err1 != nil {
+			return value, fmt.Errorf("incorrect address %s: %v", variable, err1)
+		}
+		if len(addrs) < 2 {
 			err = fmt.Errorf("Db Area read variable should not be empty")
 			return
 		}
-		if len(dbArray[1]) < 4 {
+		if addrs[1].Symbol == "" {
 			err = fmt.Errorf("db read address is invalid")
 			return
 		}
-		dbNo, _ := strconv.ParseInt(string(string(dbArray[0])[2:]), 10, 16)
-		dbIndex, _ := strconv.ParseInt(string(string(dbArray[1])[3:]), 10, 16)
-		dbType := string(dbArray[1])[0:3]
+		dbNo := addrs[0].Value
+		dbIndex := addrs[1].Value
+		// dbType := string(dbArray[1])[0:3]
 
-		switch dbType {
-		case "DBB": //byte
+		if strings.HasPrefix(addrs[1].Symbol, "DBB") || strings.HasPrefix(addrs[1].Symbol, "DB") { // byte
 			err = mb.AGReadDB(int(dbNo), int(dbIndex), 1, buffer)
 			value = buffer[0]
 			return
-		case "DBW": //word
+		} else if strings.HasPrefix(addrs[1].Symbol, "DBW") || strings.HasPrefix(addrs[1].Symbol, "DW") { //word
 			err = mb.AGReadDB(int(dbNo), int(dbIndex), 2, buffer)
 			value = binary.BigEndian.Uint16(buffer[0:])
 			return
-		case "DBD": //dword
+		} else if strings.HasPrefix(addrs[1].Symbol, "DBD") || strings.HasPrefix(addrs[1].Symbol, "DD") { //dword
 			err = mb.AGReadDB(int(dbNo), int(dbIndex), 4, buffer)
 			value = binary.BigEndian.Uint32(buffer[0:])
 			return
-		case "DBX": //bit
-			mBit, _ := strconv.ParseInt(string(string(dbArray[2])[0:]), 10, 16)
+		} else if strings.HasPrefix(addrs[1].Symbol, "DBX") || (strings.HasPrefix(addrs[1].Symbol, "D") && len(addrs) == 3) { //bit
+			mBit := addrs[2].Value
 			if mBit > 7 || mBit < 0 {
 				err = fmt.Errorf("Db read bit is invalid")
 				return
@@ -453,7 +456,7 @@ func (mb *client) Read(variable string, buffer []byte) (value interface{}, err e
 			mask := []byte{0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80}
 			value = buffer[0] & mask[mBit]
 			return
-		default:
+		} else {
 			err = fmt.Errorf("error when parsing dbtype")
 			return
 		}
@@ -621,4 +624,30 @@ func getStartAndMbit(variable string) (start int, mBit uint, err error) {
 		return
 	}
 	return int(start1), uint(mBit1), nil
+}
+
+type s7SubAddr struct {
+	Symbol string
+	Value  int
+}
+
+var validPatten = regexp.MustCompile(`^([A-Z]*)([0-9]+)$`)
+
+func parseS7Address(s7Addr string) (commands []s7SubAddr, err error) {
+	addrs := strings.Split(s7Addr, ".")
+	for _, addr := range addrs {
+		matchs := validPatten.FindStringSubmatch(addr)
+		if len(matchs) == 0 {
+			return commands, fmt.Errorf("invalid S7 address")
+		}
+		value, err := strconv.Atoi(matchs[2])
+		if err != nil {
+			return commands, fmt.Errorf("invalid S7 address %v", err)
+		}
+		commands = append(commands, s7SubAddr{
+			Symbol: matchs[1],
+			Value:  value,
+		})
+	}
+	return
 }
