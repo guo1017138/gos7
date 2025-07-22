@@ -102,8 +102,8 @@ func (mb *client) AGWriteMulti(dataItems []S7DataItem, itemsCount int) (err erro
 		dataLength = dataLength + itemDataSize + 4
 	}
 	tt, _ := interface{}(mb.transporter).(*TCPClientHandler)
-	//Checks the size
-	if offset > tt.PDULength {
+	//Checks the size, not include TPKT, COTP
+	if offset-7 > tt.PDULength {
 		err = fmt.Errorf(ErrorText(errCliSizeOverPDU))
 		return
 	}
@@ -183,7 +183,8 @@ func (mb *client) AGReadMulti(dataItems []S7DataItem, itemsCount int) (err error
 		offset += len(s7Item)
 	}
 	tt, _ := interface{}(mb.transporter).(*TCPClientHandler)
-	if offset > tt.PDULength {
+	//Checks the size, not include TPKT, COTP
+	if offset-7 > tt.PDULength {
 		err = fmt.Errorf(ErrorText(errCliSizeOverPDU))
 		return
 	}
