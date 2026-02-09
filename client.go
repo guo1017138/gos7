@@ -434,19 +434,19 @@ func (mb *client) Read(variable string, buffer []byte) (value interface{}, err e
 		dbIndex := addrs[1].Value
 		// dbType := string(dbArray[1])[0:3]
 
-		if strings.HasPrefix(addrs[1].Symbol, "DBB") || strings.HasPrefix(addrs[1].Symbol, "DB") { // byte
+		if addrs[1].Symbol == "DBB" || addrs[1].Symbol == "DB" { // byte
 			err = mb.AGReadDB(int(dbNo), int(dbIndex), 1, buffer)
 			value = buffer[0]
 			return
-		} else if strings.HasPrefix(addrs[1].Symbol, "DBW") || strings.HasPrefix(addrs[1].Symbol, "DW") { //word
+		} else if addrs[1].Symbol == "DBW" || addrs[1].Symbol == "DW" { //word
 			err = mb.AGReadDB(int(dbNo), int(dbIndex), 2, buffer)
 			value = binary.BigEndian.Uint16(buffer[0:])
 			return
-		} else if strings.HasPrefix(addrs[1].Symbol, "DBD") || strings.HasPrefix(addrs[1].Symbol, "DD") { //dword
+		} else if addrs[1].Symbol == "DBD" || addrs[1].Symbol == "DD" { //dword
 			err = mb.AGReadDB(int(dbNo), int(dbIndex), 4, buffer)
 			value = binary.BigEndian.Uint32(buffer[0:])
 			return
-		} else if strings.HasPrefix(addrs[1].Symbol, "DBX") || (strings.HasPrefix(addrs[1].Symbol, "D") && len(addrs) == 3) { //bit
+		} else if addrs[1].Symbol == "DBX" || (addrs[1].Symbol == "D" && len(addrs) == 3) { //bit
 			mBit := addrs[2].Value
 			if mBit > 7 || mBit < 0 {
 				err = fmt.Errorf("Db read bit is invalid")
